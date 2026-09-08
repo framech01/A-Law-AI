@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,13 +47,20 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str = "alawdb"
     DB_USER: str = "alawuser"
-    DB_PASSWORD: str = "alaw"
+    DB_PASSWORD: str
 
     # AWS S3 (Spring Boot와 공유)
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "ap-northeast-2"
     AWS_S3_BUCKET: str = "alaw-contracts"
+
+    # Internal API and data-boundary security
+    API_INTERNAL_TOKEN: str = ""
+    CORS_ORIGINS: list[str] = Field(default_factory=lambda: ["http://127.0.0.1:3000"])
+    MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
+    CALLBACK_ALLOWED_HOSTS: list[str] = Field(default_factory=list)
+    S3_ALLOWED_PREFIX: str = "contracts/"
 
 
 settings = Settings()

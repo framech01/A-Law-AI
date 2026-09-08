@@ -24,6 +24,7 @@ from loguru import logger
 
 from app.core.celery_config import celery_app
 from app.core.config import settings
+from app.core.security import is_allowed_callback_url
 from app.schemas.contract_analysis_dto import (
     ContractAnalysisRequest,
     ContractAnalysisResult,
@@ -263,8 +264,12 @@ def analyze_contract(
         update_job_status_db(job_id, "COMPLETED", result=result)
 
         # 7. 콜백 호출 (있는 경우)
-        if callback_url:
+        if callback_url and is_allowed_callback_url(
+            callback_url, settings.CALLBACK_ALLOWED_HOSTS
+        ):
             send_callback(callback_url, result)
+        elif callback_url:
+            logger.warning("Blocked analysis callback to a non-allowlisted host")
 
         logger.info(f"Analysis completed: job_id={job_id}, risk_score={risk_score}")
         return result
@@ -332,9 +337,9 @@ def send_callback(callback_url: str, result: Dict):
                 headers={"Content-Type": "application/json"}
             )
             response.raise_for_status()
-            logger.info(f"Callback sent to {callback_url}")
+            logger.info("Analysis callback sent")
     except Exception as e:
-        logger.warning(f"Callback failed: {callback_url}, error: {e}")
+        logger.warning("Analysis callback failed: {}", type(e).__name__)
 
 
 # ===========================================

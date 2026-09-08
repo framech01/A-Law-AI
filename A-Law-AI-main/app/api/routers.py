@@ -1,10 +1,12 @@
 """
 API 라우터 등록
 """
-from fastapi import APIRouter
-from app.api.endpoints import contract, ocr, rag, contract_analysis
+from fastapi import APIRouter, Depends
 
-api_router = APIRouter()
+from app.api.endpoints import contract, contract_analysis, ocr, rag
+from app.core.security import require_internal_token
+
+api_router = APIRouter(dependencies=[Depends(require_internal_token)])
 
 # 계약서 분석
 api_router.include_router(
