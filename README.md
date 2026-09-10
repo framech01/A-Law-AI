@@ -21,7 +21,6 @@
 → 최종 Top-5를 GPT 컨텍스트로 전달
 ```
 
-BM25는 사용하지 않습니다.
 
 Pinecone namespace:
 
@@ -68,7 +67,4 @@ QDRANT_COLLECTION=alaw
 - `POST /api/rag/answer`: LangGraph 기반 답변 생성
 - `GET /api/rag/stats`: Pinecone 통계 조회
 
-RAG API 요청에는 `X-RAG-Admin-Token` 헤더가 필요합니다. 전체 컬렉션 삭제 API는 안전을 위해 비활성화되어 있습니다.
-
-> 생성 결과는 법률 자문이 아닌 검토 보조 자료입니다. 실제 판단에는 원문과 최신 법령 확인 및 전문가 검토가 필요합니다.
 
