@@ -1,0 +1,1 @@
+"""Dense legal RAG components."""

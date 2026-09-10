@@ -5,7 +5,8 @@
 """
 import json
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
+from typing import Optional
 
 import redis
 from celery.result import AsyncResult
@@ -13,10 +14,10 @@ from fastapi import APIRouter, HTTPException
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from app.core.celery_config import celery_app
 from app.core.config import settings
-from app.core.security import is_allowed_callback_url
+from app.core.celery_config import celery_app
 from app.worker.worker import analyze_contract
+
 
 router = APIRouter()
 
@@ -33,7 +34,7 @@ class AnalysisSubmitRequest(BaseModel):
     contract_id: str = Field(..., description="계약서 ID (Spring Boot에서 발급)")
     ocr_text: str = Field(..., description="OCR로 추출된 계약서 텍스트")
     priority: int = Field(default=1, ge=1, le=3, description="우선순위 (1=낮음, 3=높음)")
-    callback_url: str | None = Field(None, description="완료 시 콜백 URL (선택)")
+    callback_url: Optional[str] = Field(None, description="완료 시 콜백 URL (선택)")
 
 
 class AnalysisSubmitResponse(BaseModel):
@@ -48,7 +49,7 @@ class AnalysisStatusResponse(BaseModel):
     job_id: str
     status: str  # QUEUED, ANALYZING, COMPLETED, FAILED, RETRYING
     updated_at: str
-    error: str | None = None
+    error: Optional[str] = None
 
 
 class AnalysisResultResponse(BaseModel):
@@ -58,8 +59,8 @@ class AnalysisResultResponse(BaseModel):
     fraud_risks: list
     missing_clauses: list
     illegal_clauses: list
-    summary: str | None = None
-    recommendations: list | None = None
+    summary: Optional[str] = None
+    recommendations: Optional[list] = None
     risk_score: float
     completed_at: str
 
@@ -78,18 +79,13 @@ async def submit_analysis(request: AnalysisSubmitRequest):
     """
     job_id = str(uuid.uuid4())
 
-    if request.callback_url and not is_allowed_callback_url(
-        request.callback_url, settings.CALLBACK_ALLOWED_HOSTS
-    ):
-        raise HTTPException(422, "허용되지 않은 callback URL입니다.")
-
     try:
         # 1. 초기 상태 저장 (Redis)
         status_data = {
             "jobId": job_id,
             "contractId": request.contract_id,
             "status": "QUEUED",
-            "updatedAt": datetime.now(UTC).isoformat()
+            "updatedAt": datetime.now().isoformat()
         }
         redis_client.setex(
             f"status:{job_id}",
@@ -122,8 +118,8 @@ async def submit_analysis(request: AnalysisSubmitRequest):
         logger.error(f"Redis connection error: {e}")
         raise HTTPException(503, "Redis 연결 실패")
     except Exception as e:
-        logger.exception("Submit analysis failed: {}", type(e).__name__)
-        raise HTTPException(500, "분석 요청 처리 중 오류가 발생했습니다.") from e
+        logger.error(f"Submit analysis error: {e}")
+        raise HTTPException(500, f"분석 요청 실패: {str(e)}")
 
 
 @router.get("/status/{job_id}", response_model=AnalysisStatusResponse)
@@ -161,7 +157,7 @@ async def get_analysis_status(job_id: str):
         return AnalysisStatusResponse(
             job_id=job_id,
             status=status,
-            updated_at=datetime.now(UTC).isoformat(),
+            updated_at=datetime.now().isoformat(),
             error=error
         )
 
@@ -232,13 +228,13 @@ async def cancel_analysis(job_id: str):
         task_result = AsyncResult(job_id, app=celery_app)
 
         if task_result.status == "PENDING":
-            task_result.revoke(terminate=False)
+            task_result.revoke(terminate=True)
 
             # 상태 업데이트
             status_data = {
                 "jobId": job_id,
                 "status": "CANCELLED",
-                "updatedAt": datetime.now(UTC).isoformat()
+                "updatedAt": datetime.now().isoformat()
             }
             redis_client.setex(
                 f"status:{job_id}",

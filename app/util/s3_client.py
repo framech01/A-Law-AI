@@ -47,17 +47,17 @@ class S3Client:
                 Key=s3_key
             )
             image_bytes = response['Body'].read()
-            logger.debug("S3 이미지 다운로드 완료")
+            logger.debug(f"S3에서 이미지 다운로드 완료: {s3_key}")
             return image_bytes
 
         except ClientError as e:
             error_code = e.response['Error']['Code']
             if error_code == 'NoSuchKey':
-                logger.error("S3 객체를 찾을 수 없음")
-                raise FileNotFoundError("S3 객체를 찾을 수 없음") from e
+                logger.error(f"S3 객체를 찾을 수 없음: {s3_key}")
+                raise FileNotFoundError(f"S3 객체를 찾을 수 없음: {s3_key}")
             else:
-                logger.error("S3 접근 오류: {}", error_code)
-                raise RuntimeError("S3 접근 오류") from e
+                logger.error(f"S3 접근 오류: {e}")
+                raise RuntimeError(f"S3 접근 오류: {e}")
 
     def upload_file(self, file_bytes: bytes, s3_key: str, content_type: str = "image/jpeg") -> str:
         """
@@ -79,12 +79,12 @@ class S3Client:
                 ContentType=content_type
             )
             url = f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
-            logger.info("S3 업로드 완료")
+            logger.info(f"S3 업로드 완료: {s3_key}")
             return url
 
         except ClientError as e:
-            logger.error("S3 업로드 오류")
-            raise RuntimeError("S3 업로드 오류") from e
+            logger.error(f"S3 업로드 오류: {e}")
+            raise RuntimeError(f"S3 업로드 오류: {e}")
 
     def delete_file(self, s3_key: str) -> bool:
         """
@@ -101,11 +101,11 @@ class S3Client:
                 Bucket=settings.AWS_S3_BUCKET,
                 Key=s3_key
             )
-            logger.info("S3 파일 삭제 완료")
+            logger.info(f"S3 파일 삭제 완료: {s3_key}")
             return True
 
         except ClientError as e:
-            logger.error("S3 삭제 오류")
+            logger.error(f"S3 삭제 오류: {e}")
             return False
 
     def file_exists(self, s3_key: str) -> bool:

@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from concurrent.futures import ThreadPoolExecutor
+from app.api.routers import api_router
+from app.services.rabbitmq_consumer import start_consumer, stop_consumer
 from loguru import logger
 
-from app.api.routers import api_router
-from app.core.config import settings
-from app.services.rabbitmq_consumer import start_consumer, stop_consumer
+
+executor = ThreadPoolExecutor(max_workers=4)
 
 
 @asynccontextmanager
@@ -16,8 +17,8 @@ async def lifespan(app: FastAPI):
     try:
         await start_consumer()
         logger.info("RabbitMQ Consumer started successfully")
-    except Exception as e:  # noqa: BLE001 - API remains available if the optional queue is down.
-        logger.warning("RabbitMQ Consumer failed to start: {}", type(e).__name__)
+    except Exception as e:
+        logger.warning(f"RabbitMQ Consumer failed to start: {e}")
         logger.warning("The API will still work, but message queue processing is disabled")
 
     yield
@@ -38,7 +39,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -25,11 +25,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # 애플리케이션 코드 복사
 COPY . .
 
-RUN addgroup --system app && adduser --system --ingroup app app && \
-    chown -R app:app /app
-
-USER app
-
 # 포트 노출
 EXPOSE 8001
 

@@ -1,4 +1,3 @@
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,17 +18,27 @@ class Settings(BaseSettings):
     UPSTAGE_API_KEY: str = ""
 
     # Qdrant Vector Database
-    QDRANT_URL: str
+    QDRANT_URL: str = "http://localhost:6333"
     QDRANT_API_KEY: str | None = None
-    QDRANT_COLLECTION: str
+    QDRANT_COLLECTION: str = "alaw"
+
+    # Pinecone dense RAG
+    PINECONE_API_KEY: str = ""
+    PINECONE_INDEX: str = "a-law"
+    RAG_NAMESPACES: str = "law_database,law_statutes,contracts,special_clauses_illegal,special_clauses_normal"
+    RETRIEVAL_K_PER_NAMESPACE: int = 10
+    RERANK_CANDIDATES: int = 20
+    FINAL_CONTEXT_K: int = 5
+    RERANKER_MODEL: str = "BAAI/bge-reranker-v2-m3"
+    RAG_ADMIN_TOKEN: str = ""
 
     # RAG Settings
-    CHUNK_SIZE: int
-    CHUNK_OVERLAP: int
-    TOP_K_DOCUMENTS: int
+    CHUNK_SIZE: int = 700
+    CHUNK_OVERLAP: int = 100
+    TOP_K_DOCUMENTS: int = 5
 
     # Legal Documents Path
-    LEGAL_DOCS_PATH: str
+    LEGAL_DOCS_PATH: str = "data"
     
     # RabbitMQ (Spring Boot 인프라 연결)
     RABBITMQ_URL: str = "amqp://guest:guest@localhost:5672/"
@@ -47,20 +56,13 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str = "alawdb"
     DB_USER: str = "alawuser"
-    DB_PASSWORD: str
+    DB_PASSWORD: str = "alaw"
 
     # AWS S3 (Spring Boot와 공유)
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "ap-northeast-2"
     AWS_S3_BUCKET: str = "alaw-contracts"
-
-    # Internal API and data-boundary security
-    API_INTERNAL_TOKEN: str = ""
-    CORS_ORIGINS: list[str] = Field(default_factory=lambda: ["http://127.0.0.1:3000"])
-    MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
-    CALLBACK_ALLOWED_HOSTS: list[str] = Field(default_factory=list)
-    S3_ALLOWED_PREFIX: str = "contracts/"
 
 
 settings = Settings()
